@@ -38,11 +38,15 @@
         </ons-toolbar>
 
         <div class="login-form">
-
-            <input type="email" class="text-input--underbar" placeholder="Email" value="">
-            <input type="password" class="text-input--underbar" placeholder="Password" value="">
+            <form name="form">
+                <input type="email" class="text-input--underbar" placeholder="Email" value="" required
+                       ng-model="mail">
+                <input type="password" class="text-input--underbar" placeholder="Password" value="" required
+                       ng-model="pass" ng-minlength="4" ng-maxlength="50">
+            </form>
             <br><br>
-            <ons-button modifier="large" class="login-button" ng-click="signUp()">Log In</ons-button>
+            <ons-button modifier="large" class="login-button" ng-click="signUp()"
+                        ng-disabled="!form.$valid">Log In</ons-button>
             <br><br>
             <ons-button modifier="quiet" class="forgot-password">Forgot password?</ons-button>
         </div>
