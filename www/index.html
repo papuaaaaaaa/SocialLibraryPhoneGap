@@ -50,7 +50,47 @@
             <br><br>
             <ons-button modifier="quiet" class="forgot-password">Forgot password?</ons-button>
         </div>
+        <ons-modal var="modal">
+            <ons-icon icon="ion-load-c" spin="true"></ons-icon>
+        </ons-modal>
+    </ons-page>
+</ons-template>
 
+
+<ons-template id="wanted.html">
+    <ons-page ng-controller="WantedBookController">
+        <ons-toolbar>
+            <div class="right">
+                <ons-toolbar-button>
+                    <ons-icon icon="ion-plus-round" style="font-size: 32px; width: 1em"
+                              ng-click="add('imageUrl', 'title', 'isbn', 'comment')">
+                </ons-toolbar-button>
+            </div>
+            <div class="center">Wanted Books</div>
+        </ons-toolbar>
+
+        <ons-list>
+            <ons-list-item modifier="chevron" class="list-item-container"
+                           ng-repeat="book in books">
+                <ons-row>
+                    <ons-col width="95px">
+                        <img ng-src="{{book.image_url}}" class="thumbnail">
+                    </ons-col>
+                    <ons-col>
+                        <div class="name">
+                            {{book.title}}
+                        </div>
+                        <div class="location">
+                            <i class="fa fa-map-marker"></i>{{book.author}}
+                        </div>
+                        <div class="desc">
+                            {{book.comment}}
+                        </div>
+                    </ons-col>
+                    <ons-col width="40px"></ons-col>
+                </ons-row>
+            </ons-list-item>
+        </ons-list>
     </ons-page>
 </ons-template>
 
