@@ -1,50 +1,75 @@
 var module = ons.bootstrap('my-app', ['onsen', 'config'])
-    .factory('storage', ['$http', '$rootScope', 'APP_CONF', function ($http, $scope, APP_CONF) {
+    .factory('auth', ['$rootScope', 'APP_CONF', function ($scope, APP_CONF) {
         return {
             registerUser: function (email, password) {
-                // Create the KiiUser object
                 var user = KiiUser.userWithEmailAddress(email, password);
-
-                // Register the user, defining callbacks for when the process completes
                 user.register({
-                    // Called on successful registration
                     success: function (theUser) {
-                        // Print some info to the log
                         console.log("User registered!");
                         console.log(theUser);
                     },
-                    // Called on a failed registration
                     failure: function (theUser, errorString) {
-                        // Print some info to the log
                         console.log("Error registering: " + errorString);
                     }
                 });
             },
             login: function (email, password) {
-                // Authenticate the user
                 KiiUser.authenticate(email, password, {
-                    // Called on successful registration
                     success: function (theUser) {
-                        // Print some info to the log
                         console.log("User authenticated!");
                         console.log(theUser);
                     },
-                    // Called on a failed authentication
                     failure: function (theUser, errorString) {
-                        // Print some info to the log
                         console.log("Error authenticating: " + errorString);
                     }
                 });
+            }
+        }
+    }])
+    .factory('wanted_books', ['$rootScope', 'APP_CONF', function ($scope, APP_CONF) {
+
+        var bucket = KiiUser.getCurrentUser().bucketWithName("wanted_books");
+        var books = [];
+
+        var create = function (title, author, isbn, image_url, comment) {
+            var obj = bucket.createObject();
+            obj.set("title", title);
+            obj.set("author", author);
+            obj.set("isbn", isbn);
+            obj.set("image_url", image_url);
+            obj.set("comment", comment);
+            return obj;
+        };
+
+        var update = function () {
+            var all_query = KiiQuery.queryWithClause();
+            var queryCallbacks = {
+                success: function (queryPerformed, results, nextQuery) {
+                    books = [];
+                    for (var i = 0; i < results.length; i++) {
+                        books.push({
+                            title: results[i].get("title"),
+                            author: results[i].get("author"),
+                            isbn: results[i].get("isbn"),
+                            image_url: results[i].get("image_url"),
+                            comment: results[i].get("comment")
+                        });
+                    }
+                },
+                failure: function (queryPerformed, anErrorString) {
+                    // do something with the error response
+                }
+            };
+            bucket.executeQuery(all_query, queryCallbacks);
+        };
+
+        return {
+            list: function () {
+                update();
+                return books;
             },
-            addWantedBook: function (imageUrl, title, author, isbn, comment) {
-                var user = KiiUser.getCurrentUser();
-                var bucket = user.bucketWithName("wanted_books");
-                var obj = bucket.createObject();
-                obj.set("image_url", imageUrl);
-                obj.set("title", title);
-                obj.set("author", author);
-                obj.set("isbn", isbn);
-                obj.set("comment", comment)
+            createObject: create,
+            add: function (obj) {
                 obj.save({
                     success: function (theObject) {
                         console.log("Object saved!");
@@ -54,66 +79,49 @@ var module = ons.bootstrap('my-app', ['onsen', 'config'])
                         console.log("Error saving object: " + errorString);
                     }
                 });
-            }
+            },
+            remove: function (obj) {
+                obj.delete({
+                    success: function (theDeletedObject) {
+                        console.log("Object deleted!");
+                        console.log(theDeletedObject);
+                    },
+                    failure: function (theObject, errorString) {
+                        console.log("Error deleting object: " + errorString);
+                    }
+                });
+            },
+            updateList: update
         }
     }])
-    .controller('AppController', ['$scope', function ($scope) {
+    .
+    controller('AppController', ['$scope', function ($scope) {
     }])
     .controller('PageController', ['$scope', function ($scope) {
+        $scope.wanted_books = [];
+        $scope.provided_books = [];
     }])
-    .controller('LoginController', ['$scope', 'storage', function ($scope, storage) {
+    .controller('LoginController', ['$scope', 'auth', function ($scope, auth) {
         $scope.mail = ""
         $scope.pass = ""
 
         $scope.signUp = function () {
-            storage.registerUser($scope.mail, $scope.pass);
+            auth.registerUser($scope.mail, $scope.pass);
         };
 
         $scope.login = function () {
-            storage.login($scope.mail, $scope.pass);
+            auth.login($scope.mail, $scope.pass);
         }
     }])
-    .controller('WantedBookController', ['$scope', 'storage', function ($scope, storage) {
+    .controller('WantedBookController', ['$scope', 'auth', 'wanted_books', function ($scope, auth, wanted_books) {
 
         $scope.selectBook = {};
         $scope.add = function () {
-            storage.addWantedBook(selectBook.imageUrl, selectBook.title, selectBook.isbn, selectBook.comment);
+            var book = wanted_books.createObject('title', 'author', 'isbn', 'comment', 'url');
+            wanted_books.add(book);
+            $scope.books = wanted_books.list()
         };
-        //$scope.books = [{"image_url": "image_url", "title": "title", "author": "author", "comment": "comment"},
-        //    {"image_url": "image_url", "title": "title", "author": "author", "comment": "comment"}];
-        $scope.books = [];
-        $scope.list = function () {
-            console.log("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
-            var user = KiiUser.getCurrentUser();
-            var bucket = user.bucketWithName("wanted_books");
-            // Build "all" query
-            var all_query = KiiQuery.queryWithClause();
-            // Define the callbacks
-            var queryCallbacks = {
-                success: function (queryPerformed, resultSet, nextQuery) {
-                    $scope.books = [];
-                    for (var i = 0; i < resultSet.length; i++) {
-                        // do something with the object resultSet[i];
-                        $scope.books.push({
-                            image_url: resultSet[i].get("image_url"),
-                            title: resultSet[i].get("title"),
-                            author: resultSet[i].get("author"),
-                            comment: resultSet[i].get("title")
-                        });
-                    }
-                    console.log($scope.books)
-                },
-                failure: function (queryPerformed, anErrorString) {
-                    // do something with the error response
-                }
-            };
-            // Execute the query
-            bucket.executeQuery(all_query, queryCallbacks);
-            // alternatively, you can also do:
-            //bucket.executeQuery(null, queryCallbacks);
-        };
-        $scope.list();
-
+        $scope.books = wanted_books.list()
     }])
     .controller('ProvidedBookController', ['$scope', function ($scope) {
     }])
